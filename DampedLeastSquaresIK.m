@@ -443,6 +443,9 @@ function Outputs(block)
 
   % ---------------- ITERATIONS --------------------------------
   maxIterations = 10;
+  if norm(initialGuess) < 0.01
+      initialGuess = monteCarloInitialGuess(configuration, robotTCPName, targetPose);
+  end
   articulation = initialGuess;
   for k=1:maxIterations
       tcpPose = getTransform(configuration, articulation, robotBaseName, robotTCPName);
