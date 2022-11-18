@@ -436,7 +436,6 @@ function Outputs(block)
   configuration.DataFormat = 'column';
 
   % get current pose of the endeffector and compute pose delta to target
-  robotBaseName = configuration.BaseName;
   robotTCPName = block.DialogPrm(2).Data;
 
   % ---------------- ITERATIONS --------------------------------
@@ -446,7 +445,7 @@ function Outputs(block)
   end
   articulation = initialGuess;
   for k=1:maxIterations
-      tcpPose = getTransform(configuration, articulation, robotBaseName, robotTCPName);
+      tcpPose = getTransform(configuration, articulation, robotTCPName);
       % delta = SE3(0_T_E^-1 * T_goal)
       deltaPose = tcpPose/targetPose;
       % obtain tangent element of the delta pose
