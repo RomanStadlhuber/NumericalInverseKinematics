@@ -448,14 +448,14 @@ function Outputs(block)
   for k=1:maxIterations
       tcpPose = getTransform(configuration, articulation, robotBaseName, robotTCPName);
       % delta = SE3(0_T_E^-1 * T_goal)
-      deltaPoseSE3 = se3(tcpPose/targetPose);
-      % obtain tangent elements of the delta pose
-      err_tvec = trvec(deltaPoseSE3);
-      err_Rmat = rotm(deltaPoseSE3);
-      w_x = logm(err_Rmat); % the corresponding tangent element of the rotation matrix
-      err_rvec = [w_x(3,2) w_x(1,3) w_x(2,1)];
+      deltaPose = tcpPose/targetPose;
+      % obtain tangent element of the delta pose
+      deltaPoseTangent = logm(deltaPose);
+      err_tvec = deltaPoseTangent(1:3, 4); % tangent translation vector
+      w_x = deltaPoseTangent(1:3, 1:3); % tangent rotation vector
+      err_rvec = [w_x(3,2); w_x(1,3); w_x(2,1)];
       % weighted error vector in twist coordinates
-      err = diag(weights) * ([err_tvec, err_rvec].');
+      err = diag(weights) * [err_tvec; err_rvec];
 
       % ------------- DAMPED LEAST SQUARES LOGIC ---------------------------
 
