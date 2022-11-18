@@ -423,6 +423,10 @@ function Outputs(block)
   % obtain Pose (4x4), Weights (6x1) and InitialGuess (6x1)
   targetPose = block.InputPort(1).Data;
   weights = block.InputPort(2).Data;
+  % switch angular and linear compoments of the weights
+  % since they, similar to the geometric jacobian, put rotation before
+  % translation
+  weights = [weights(4:6); weights(1:3)];
   % TODO: find out how to check if this is empty before loading it
   initialGuess = block.InputPort(3).Data;
 
@@ -467,7 +471,7 @@ function Outputs(block)
       v_s = J(4:6, :);
       J = [v_s; w_s];
       [~, n] = size(J); % obtain columns of the jacobian, rows don't matter
-      delta_articulation = (J.' * J + l^2 * eye(n)) \ J.' * err;
+      delta_articulation = (J * J.' + l^2 * eye(n)) \ J.' * err;
       articulation = articulation + delta_articulation;
   end
  
