@@ -75,7 +75,7 @@ function setup(block)
   block.DialogPrmsTunable = {'Nontunable', 'Nontunable', 'Tunable'}; 
   
   % Set up the continuous states.
-  block.NumContStates = 1; % TODO: find out how many are needed
+  block.NumContStates = 0; % TODO: find out how many are needed
 
   % Register the sample times.
   %  [0 offset]            : Continuous sample time
@@ -83,7 +83,7 @@ function setup(block)
   %
   %  [-1, 0]               : Inherited sample time
   %  [-2, 0]               : Variable sample time
-  block.SampleTimes = [0 0];
+  block.SampleTimes = [0.1 0]; % first value is block sample time in seconds
   
   % -----------------------------------------------------------------
   % Options
@@ -207,7 +207,7 @@ function setup(block)
   %                      area values.
   %   C MEX counterpart: mdlInitializeConditions
   % 
-  block.RegBlockMethod('InitializeConditions', @InitializeConditions);
+  %block.RegBlockMethod('InitializeConditions', @InitializeConditions);
   
   % 
   % Start:
@@ -239,7 +239,7 @@ function setup(block)
   %                      continuous states during a simulation step.
   %   C MEX counterpart: mdlDerivatives
   %
-  block.RegBlockMethod('Derivatives', @Derivatives);
+  %block.RegBlockMethod('Derivatives', @Derivatives);
   
   % 
   % Projection:
@@ -455,7 +455,7 @@ function Outputs(block)
       err_tvec = trvec(deltaPoseSE3);
       err_Rmat = rotm(deltaPoseSE3);
       w_x = logm(err_Rmat); % the corresponding tangent element of the rotation matrix
-      err_rvec = w_x([8, 3, 4]);
+      err_rvec = [w_x(3,2) w_x(1,3) w_x(2,1)];
       % weighted error vector in twist coordinates
       err = diag(weights) * ([err_tvec, err_rvec].');
 
