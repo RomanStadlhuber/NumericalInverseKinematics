@@ -404,12 +404,6 @@ function DoPostPropSetup(block)
 
 %endfunction
 
-function InitializeConditions(block)
-
-block.ContStates.Data = 1;
-
-%endfunction
-
 function Start(block)
 
   block.Dwork(1).Data = 0;
@@ -485,11 +479,6 @@ function Outputs(block)
 %   
 %   block.Dwork(1).Data = block.InputPort(1).Data;
   
-%endfunction
-
-function Derivatives(block)
-%NOTE: unused
-block.Derivatives.Data = 0*block.ContStates.Data;
 
 %endfunction
 
