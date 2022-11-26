@@ -427,8 +427,8 @@ function Outputs(block)
   % since they, similar to the geometric jacobian, put rotation before
   % translation
   weights = [weights(4:6); weights(1:3)];
-  % TODO: find out how to check if this is empty before loading it
-  initialGuess = block.InputPort(3).Data;
+  l = block.DialogPrm(3).Data; % damping constant
+  initialGuess = block.InputPort(3).Data; % output of last iteration
 
   % obtain the rigidbody tree from the dialog parameter
   configuration = block.DialogPrm(1).Data;
@@ -439,7 +439,7 @@ function Outputs(block)
   robotTCPName = block.DialogPrm(2).Data;
 
   % ---------------- ITERATIONS --------------------------------
-  maxIterations = 10;
+  maxIterations = 100;
   if norm(initialGuess) < 0.01
       initialGuess = monteCarloInitialGuess(configuration, robotTCPName, targetPose);
   end
@@ -447,28 +447,28 @@ function Outputs(block)
   for k=1:maxIterations
       tcpPose = getTransform(configuration, articulation, robotTCPName);
       % delta = SE3(0_T_E^-1 * T_goal)
-      deltaPose = tcpPose/targetPose;
+      deltaPose = tcpPose \ targetPose;
       % obtain tangent element of the delta pose
       deltaPoseTangent = logm(deltaPose);
       err_tvec = deltaPoseTangent(1:3, 4); % tangent translation vector
       w_x = deltaPoseTangent(1:3, 1:3); % tangent rotation vector
       err_rvec = [w_x(3,2); w_x(1,3); w_x(2,1)];
-      % weighted error vector in twist coordinates
-      err = diag(weights) * [err_tvec; err_rvec];
-
+      % weighted error vector in twist coordinates at the local
+      % tangent-space
+      err_local = diag(weights) * [err_tvec; err_rvec];
+      % adjoint matrix to transfer local twist to the lie-algebra se(3)
+      AdM = adjointSE3(tcpPose);
+      err = AdM * err_local;
+      
       % ------------- DAMPED LEAST SQUARES LOGIC ---------------------------
 
       % clamp the error vector to a maximum distance, let's say 100
-      d_max = 1;
+      d_max = 0.125;
       if norm(err) > d_max
           err = err/norm(err) * d_max;
       end
       % obtain the jacobian and formulate the dls constraint
-      l = block.DialogPrm(3).Data; % damping constant
-      J = geometricJacobian(configuration, articulation, robotTCPName);
-      w_s = J(1:3, :);
-      v_s = J(4:6, :);
-      J = [v_s; w_s];
+      J = spaceJacobian(configuration, articulation, robotTCPName);
       [~, n] = size(J); % obtain columns of the jacobian, rows don't matter
       delta_articulation = (J * J.' + l^2 * eye(n)) \ J.' * err;
       articulation = articulation + delta_articulation;
