@@ -8,3 +8,7 @@
 !dlsik_lib.slx
 # ... plus the initial guess functions ...
 !monteCarloInitialGuess.m
+# ... for on-manifold optimization we need the
+# adjoint-matrix and space-jacobian functions ...
+!adjointSE3.m
+!spaceJacobian.m
