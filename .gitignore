@@ -12,3 +12,6 @@
 # adjoint-matrix and space-jacobian functions ...
 !adjointSE3.m
 !spaceJacobian.m
+
+# ... also, provide a self-contained example ...
+!simpleRobotTest.m
