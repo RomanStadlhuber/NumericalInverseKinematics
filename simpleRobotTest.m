@@ -108,6 +108,6 @@ function deltaArticulation = iterateIK(robot, articulation, tcpName, targetPose)
     tcpPose = getTransform(robot, articulation, tcpName);
     localError = errorTwist(tcpPose, targetPose);
     globalError = adjointSE3(tcpPose) * localError;
-    J = spaceJacobian(robot, articulation, tcpName);
+    J = spaceJacobian(robot, articulation);
     deltaArticulation = J.' / (J * J.' + l^2 * eye(6)) * globalError;
 end
