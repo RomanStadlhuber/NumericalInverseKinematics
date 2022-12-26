@@ -25,7 +25,7 @@ T_sd = getTransform(robot, targetArticulation, tcpName);
 
 % this is a slightly offset articulation than that which produces the
 % target pose, so it "should" converge
-initialGuess = [0.01; pi/2 + 0.01 ; 0; pi/2 + 0.01; -0.01; 0.1];
+initialGuess = monteCarloInitialGuess(robot, tcpName, T_sd);
 T_sb0 = getTransform(robot, initialGuess, tcpName);
 % satisfaction constraint and breaking condition
 minDistance = 1e-3; % consider the result converged if this distance is met
