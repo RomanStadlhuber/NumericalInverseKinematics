@@ -1,4 +1,6 @@
-function J = spaceJacobian(rigidBodyTree, currArticulation, tcpName)
+% Algorithm to compute the "space Jacobian matrix" as it is described in
+% "Modern Robotics", Ch. 5.1.1
+function J = spaceJacobian(rigidBodyTree, currArticulation, jointIdxOffset)
 
     % set articulation input vector format to column
     rigidBodyTree.DataFormat = "column";
@@ -6,18 +8,25 @@ function J = spaceJacobian(rigidBodyTree, currArticulation, tcpName)
     [numJoints, ~] = size(thetaZero);
     Sxs = zeros([4 4 numJoints]); % screw matrix [se(3)] storage
     Svecs = zeros([6 numJoints]); % screw vector storage
-    % home pose of the endeffector body "n"
-    hTn = getTransform(rigidBodyTree, thetaZero, tcpName);
     % the output Jacobian matrix
     J = zeros([6 numJoints]);
 
     % compute space jacobian
     for i = 1:numJoints
+        % if an offset value was specified, use it when indexing the tree
+        offset = 0;
+        if exist('jointIdxOffset', 'var')
+            offset = jointIdxOffset;
+        end
+        jointName = char(rigidBodyTree.BodyNames(i + offset));
         delta = zeros(numJoints,1);
         delta(i) = 1; % NOTE: the value of the delta angle does not matter
-        dTn = getTransform(rigidBodyTree, thetaZero + delta, tcpName);
+        % the transform of the i-th joint at the home pose
+        hTi = getTransform(rigidBodyTree, thetaZero, jointName);
+        % the transform of the i-th joint after a delta being applied 
+        dTi = getTransform(rigidBodyTree, thetaZero + delta, jointName);
         % compute screw matrix
-        SxQ = logm(dTn / hTn);
+        SxQ = logm(dTi / hTi); % NOTE: this inverts the right term
         % obtain screw vector
         wxQ = [SxQ(3,2); SxQ(1,3); SxQ(2,1)];
         vxQ = SxQ(1:3, 4);
@@ -50,7 +59,7 @@ function J = spaceJacobian(rigidBodyTree, currArticulation, tcpName)
                 PoE = PoE * expm(Sxs(:,:,j) * currArticulation(j));
             end
             AdMn = adjointSE3(PoE);
-            Jn = AdMn * Svecs(:,j);
+            Jn = AdMn * Svecs(:,i);
             J(:, i) = Jn;
         end
     end
