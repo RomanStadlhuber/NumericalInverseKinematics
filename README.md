@@ -10,7 +10,7 @@ This library includes the following features:
 - _Customization of the damping factor_ via the Simulink block mask.
 - _Custom weighting factors_ for the pose error via block input ports.
 
-**Please remark** that this solver only optimizes a kinematic constraint and therefore does not take into account any kinetic properties of the serial open chain. This is experimental code, do not use in a production envirnomnt.
+**Please remark** that this solver only optimizes a kinematic constraint and therefore does not take into account any kinetic properties of the serial open chain. This is experimental code, do not use in a production envirnoment.
 
 ## Setup and Quick Start
 
