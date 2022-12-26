@@ -444,36 +444,28 @@ function Outputs(block)
       initialGuess = monteCarloInitialGuess(configuration, robotTCPName, targetPose);
   end
   articulation = initialGuess;
-  for k=1:maxIterations
-      tcpPose = getTransform(configuration, articulation, robotTCPName);
-      % delta = SE3(0_T_E^-1 * T_goal)
-      deltaPose = tcpPose \ targetPose;
-      % obtain tangent element of the delta pose
-      deltaPoseTangent = logm(deltaPose);
-      err_tvec = deltaPoseTangent(1:3, 4); % tangent translation vector
-      w_x = deltaPoseTangent(1:3, 1:3); % tangent rotation vector
-      err_rvec = [w_x(3,2); w_x(1,3); w_x(2,1)];
-      % weighted error vector in twist coordinates at the local
-      % tangent-space
-      err_local = diag(weights) * [err_tvec; err_rvec];
-      % adjoint matrix to transfer local twist to the lie-algebra se(3)
-      AdM = adjointSE3(tcpPose);
-      err = AdM * err_local;
-      
-      % ------------- DAMPED LEAST SQUARES LOGIC ---------------------------
+  % compute initial error before performing optimization
+  tcpPose = getTransform(configuration, articulation, robotTCPName);
+  % compute the weighted distance in the space frame: ||W * Ad_T * delta||
+  currDistance = norm(diag(weights) * adjointSE3(tcpPose) * errorTwist(tcpPose, targetPose));
+  numIterations = 0;
+  minDistance = 10e-4;
 
-      % clamp the error vector to a maximum distance, let's say 100
-      d_max = 0.125;
-      if norm(err) > d_max
-          err = err/norm(err) * d_max;
-      end
-      % obtain the jacobian and formulate the dls constraint
-      J = spaceJacobian(configuration, articulation, robotTCPName);
-      [~, n] = size(J); % obtain columns of the jacobian, rows don't matter
-      delta_articulation = (J * J.' + l^2 * eye(n)) \ J.' * err;
-      articulation = articulation + delta_articulation;
+  while numIterations < maxIterations && currDistance > minDistance
+      deltaArticulation = iterateIK(l, configuration, articulation, robotTCPName, targetPose);
+      articulation = articulation + deltaArticulation;
+      tcpPose = getTransform(configuration, articulation, robotTCPName);
+      % compute the weighted distance in the space frame: ||W * Ad_T * delta||
+      currDistance = norm(diag(weights) * adjointSE3(tcpPose) * errorTwist(tcpPose, targetPose));
+      numIterations = numIterations + 1;
   end
- 
+
+  if numIterations >= maxIterations
+      disp("Exceeded maximum number of iterations: " + maxIterations);
+  elseif currDistance < minDistance
+      disp("Satisfied distance constraint, distance is: " + currDistance);
+  end
+
   block.OutputPort(1).Data = articulation;
   
 %endfunction
@@ -522,3 +514,31 @@ function SetOperatingPoint(block, operPointData)
 block.Dwork(1).Data = operPointData;
 
 %endfunction
+
+%% custom function definitions
+
+% compute error twist in body (=TCP frame)
+% see "Modern Robotics", Ch. 6.2.2 p. 230, where the numerical inverse
+% kinematics algorithm is explained step by step
+function err = errorTwist(Ta, Tb)
+   % pose delta as seen from tangent at point a
+   deltaA =  logm(Ta \ Tb);
+   err_tvec = deltaA(1:3, 4); % tangent translation vector
+  w_x = deltaA(1:3, 1:3); % tangent rotation vector
+  err_rvec = [w_x(3,2); w_x(1,3); w_x(2,1)];
+  % weighted error vector in twist coordinates at the local
+  % tangent-space
+  err = [err_tvec; err_rvec];
+
+
+% iteration step of damped least squares IK algorithm
+% for more information on "damped least squares" (a Leveberg-Marquardt optimization strategy), see
+% http://graphics.cs.cmu.edu/nsp/course/15-464/Spring11/handouts/iksurvey.pdf
+% this particular algorithm uses Eq. (11) which is found on p. 10
+function deltaArticulation = iterateIK(dampingFactor, robot, articulation, tcpName, targetPose)
+    l = dampingFactor;
+    tcpPose = getTransform(robot, articulation, tcpName);
+    localError = errorTwist(tcpPose, targetPose);
+    globalError = adjointSE3(tcpPose) * localError;
+    J = spaceJacobian(robot, articulation);
+    deltaArticulation = J.' / (J * J.' + l^2 * eye(6)) * globalError;
