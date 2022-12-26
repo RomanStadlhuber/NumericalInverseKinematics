@@ -6,7 +6,6 @@
 # ... the README document, the license, ...
 !README.md
 !License.txt
-
 # ... and the script and simulink block ...
 !DampedLeastSquaresIK.m
 !dlsik_lib.slx
@@ -21,3 +20,7 @@
 !simpleRobotTest.m
 # ... and also a self contained demo for the UR10 ...
 !ur10IKDemo.m
+
+# ... the images used in the readme and (pot. other purposes) ...
+!simulink_example.png
+!ik-block_mask.png
