@@ -1,24 +1,4 @@
-% NOTES TO SELF:
-
-% Tutorial used to create the code that interfaces with the s-function
-% block:
-% https://de.mathworks.com/help/simulink/ug/tutorial-creating-a-custom-block.html#bq60ehy
-
-% How to correctly set the 'Tunability' of the Block Dialog Parameters
-% https://de.mathworks.com/matlabcentral/answers/29446-integration-using-s-functions-in-simulink
-
-% How to name the input and output ports of a custom S-Function block
-% https://de.mathworks.com/matlabcentral/answers/49553-how-to-display-port-names-in-s-function-block-just-like-they-show-up-for-simulink-subsystems
-
-
 function DampedLeastSquaresIK(block)
-%MSFUNTMPL A Template for a MATLAB S-Function
-%   The MATLAB S-function is written as a MATLAB function with the
-%   same name as the S-function. Replace 'msfuntmpl' with the name
-%   of your S-function.  
-
-%   Copyright 2003-2018 The MathWorks, Inc.
-  
 %
 % The setup method is used to setup the basic attributes of the
 % S-function such as ports, parameters, etc. Do not add any other
@@ -71,48 +51,11 @@ function setup(block)
   block.InputPort(3).Dimensions = [6,1];
 
   % Register the parameters.
-  block.NumDialogPrms     = 3;
-  block.DialogPrmsTunable = {'Nontunable', 'Nontunable', 'Tunable'}; 
-  
+  block.NumDialogPrms     = 5;
+  block.DialogPrmsTunable = {'Nontunable', 'Nontunable', 'Tunable', 'Tunable', 'Tunable'}; 
   % Set up the continuous states.
-  block.NumContStates = 0; % TODO: find out how many are needed
-
-  % Register the sample times.
-  %  [0 offset]            : Continuous sample time
-  %  [positive_num offset] : Discrete sample time
-  %
-  %  [-1, 0]               : Inherited sample time
-  %  [-2, 0]               : Variable sample time
+  block.NumContStates = 0;
   block.SampleTimes = [0.1 0]; % first value is block sample time in seconds
-  
-  % -----------------------------------------------------------------
-  % Options
-  % -----------------------------------------------------------------
-  % Specify if Accelerator should use TLC or call back to the 
-  % MATLAB file
-  block.SetAccelRunOnTLC(false);
-  
-  % Specify the block's operating point compliance. The block operating 
-  % point is used during the containing model's operating point save/restore)
-  % The allowed values are:
-  %   'Default' : Same the block's operating point as of a built-in block
-  %   'UseEmpty': No data to save/restore in the block operating point
-  %   'Custom'  : Has custom methods for operating point save/restore
-  %                 (see GetOperatingPoint/SetOperatingPoint below)
-  %   'Disallow': Error out when saving or restoring the block operating point.
-  block.OperatingPointCompliance = 'Default';
-  
-  % -----------------------------------------------------------------
-  % The MATLAB S-function uses an internal registry for all
-  % block methods. You should register all relevant methods
-  % (optional and required) as illustrated below. You may choose
-  % any suitable name for the methods and implement these methods
-  % as local functions within the same file.
-  % -----------------------------------------------------------------
-   
-  % -----------------------------------------------------------------
-  % Register the methods called during update diagram/compilation.
-  % -----------------------------------------------------------------
   
   % 
   % CheckParameters:
@@ -123,16 +66,6 @@ function setup(block)
   %   C MEX counterpart: mdlCheckParameters
   %
   block.RegBlockMethod('CheckParameters', @CheckPrms);
-
-  %
-  % SetInputPortSamplingMode:
-  %   Functionality    : Check and set input and output port 
-  %                      attributes and specify whether the port is operating 
-  %                      in sample-based or frame-based mode
-  %   C MEX counterpart: mdlSetInputPortFrameData.
-  %   (The DSP System Toolbox is required to set a port as frame-based)
-  %
-  block.RegBlockMethod('SetInputPortSamplingMode', @SetInpPortFrameData);
   
   %
   % SetInputPortDimensions:
@@ -166,56 +99,6 @@ function setup(block)
   %
   block.RegBlockMethod('SetOutputPortDataType', @SetOutPortDataType);
   
-  %
-  % SetInputPortComplexSignal:
-  %   Functionality    : Check and set the input and optionally the output
-  %                      port complexity attributes.
-  %   C MEX counterpart: mdlSetInputPortComplexSignal
-  %
-  block.RegBlockMethod('SetInputPortComplexSignal', @SetInpPortComplexSig);
-  
-  %
-  % SetOutputPortComplexSignal:
-  %   Functionality    : Check and set the output and optionally the input
-  %                      port complexity attributes.
-  %   C MEX counterpart: mdlSetOutputPortComplexSignal
-  %
-  block.RegBlockMethod('SetOutputPortComplexSignal', @SetOutPortComplexSig);
-  
-  %
-  % PostPropagationSetup:
-  %   Functionality    : Set up the work areas and the state variables. You can
-  %                      also register run-time methods here.
-  %   C MEX counterpart: mdlSetWorkWidths
-  %
-  block.RegBlockMethod('PostPropagationSetup', @DoPostPropSetup);
-
-  % -----------------------------------------------------------------
-  % Register methods called at run-time
-  % -----------------------------------------------------------------
-  
-  % 
-  % ProcessParameters:
-  %   Functionality    : Call to allow an update of run-time parameters.
-  %   C MEX counterpart: mdlProcessParameters
-  %  
-  block.RegBlockMethod('ProcessParameters', @ProcessPrms);
-
-  % 
-  % InitializeConditions:
-  %   Functionality    : Call to initialize the state and the work
-  %                      area values.
-  %   C MEX counterpart: mdlInitializeConditions
-  % 
-  %block.RegBlockMethod('InitializeConditions', @InitializeConditions);
-  
-  % 
-  % Start:
-  %   Functionality    : Call to initialize the state and the work
-  %                      area values.
-  %   C MEX counterpart: mdlStart
-  %
-  block.RegBlockMethod('Start', @Start);
 
   % 
   % Outputs:
@@ -224,30 +107,6 @@ function setup(block)
   %   C MEX counterpart: mdlOutputs
   %
   block.RegBlockMethod('Outputs', @Outputs);
-
-  % 
-  % Update:
-  %   Functionality    : Call to update the discrete states
-  %                      during a simulation step.
-  %   C MEX counterpart: mdlUpdate
-  %
-  % block.RegBlockMethod('Update', @Update);
-
-  % 
-  % Derivatives:
-  %   Functionality    : Call to update the derivatives of the
-  %                      continuous states during a simulation step.
-  %   C MEX counterpart: mdlDerivatives
-  %
-  %block.RegBlockMethod('Derivatives', @Derivatives);
-  
-  % 
-  % Projection:
-  %   Functionality    : Call to update the projections during a
-  %                      simulation step.
-  %   C MEX counterpart: mdlProjections
-  %
-  block.RegBlockMethod('Projection', @Projection);
   
   % 
   % SimStatusChange:
@@ -264,31 +123,6 @@ function setup(block)
   %
   block.RegBlockMethod('Terminate', @Terminate);
 
-  %
-  % GetOperatingPoint:
-  %   Functionality    : Return the operating point of the block.
-  %   C MEX counterpart: mdlGetOperatingPoint
-  %
-  block.RegBlockMethod('GetOperatingPoint', @GetOperatingPoint);
-  
-  %
-  % SetOperatingPoint:
-  %   Functionality    : Set the operating point data of the block using
-  %                       from the given value.
-  %   C MEX counterpart: mdlSetOperatingPoint
-  %
-  block.RegBlockMethod('SetOperatingPoint', @SetOperatingPoint);
-
-  % -----------------------------------------------------------------
-  % Register the methods called during code generation.
-  % -----------------------------------------------------------------
-  
-  %
-  % WriteRTW:
-  %   Functionality    : Write specific information to model.rtw file.
-  %   C MEX counterpart: mdlRTW
-  %
-  block.RegBlockMethod('WriteRTW', @WriteRTW);
 %endfunction
 
 % -------------------------------------------------------------------
@@ -297,14 +131,12 @@ function setup(block)
 % -------------------------------------------------------------------
 
 function CheckPrms(block)
-% TODO: the tutorial uses a try catch block in the case that no parameter
-% was provided, see if that's useful..
-
-
 % load rigidbody tree
 configuration = block.DialogPrm(1).Data;
 tcpName = block.DialogPrm(2).Data;
 dampingfactor = block.DialogPrm(3).Data;
+maxIterations = block.DialogPrm(4).Data;
+acceptanceThreshold = block.DialogPrm(5).Data;
 % throw exception if the provided parameter is no rigidbody tree
 if ~isa(configuration, 'rigidBodyTree')
     me = MSLException(block.BlockHandle, message('Requires a RigidBodyTree object'));
@@ -317,23 +149,19 @@ if ~isa(tcpName, "string")
 end
 % throw if damping coefficient is not a real double scalar
 if ~isa(dampingfactor, "double")
-    me = MSLException(block.BlockHandle, message('DampingFactor needs to be a real scalar'));
+    me = MSLException(block.BlockHandle, message('DampingFactor needs to be a positive real scalar'));
     trhow(me)
 end
-%endfunction
-
-function ProcessPrms(block)
-
-  block.AutoUpdateRuntimePrms;
- 
-%endfunction
-
-function SetInpPortFrameData(block, idx, fd)
-  
-  block.InputPort(idx).SamplingMode = fd;
-  block.OutputPort(1).SamplingMode  = fd;
-  
-%endfunction
+% throw if max number of iterations is not an integer value or equal to or
+% less than zero
+if ~isa(maxIterations, "int32") || int32(maxIterations) <= 0
+    me = MLSException(block.BlockHandle, message("Maximum number of iterations needs to be a positive integer."));
+    throw(me)
+end
+if ~isa(acceptanceThreshold, "double") || double(acceptanceThreshold) <= 0.0
+    me = MSLException(block.BlockHandle, message('Threshold needs to be a positive real scalar'));
+    trhow(me)
+end
 
 function SetInpPortDims(block, idx, di)
   
@@ -368,55 +196,6 @@ function SetOutPortDataType(block, idx, dt)
   block.OutputPort(idx).DataTypeID  = dt;
   block.InputPort(1).DataTypeID     = dt;
 
-%endfunction  
-
-function SetInpPortComplexSig(block, idx, c)
-  
-  block.InputPort(idx).Complexity = c;
-  block.OutputPort(1).Complexity  = c;
-
-%endfunction 
-  
-function SetOutPortComplexSig(block, idx, c)
-
-  block.OutputPort(idx).Complexity = c;
-  block.InputPort(1).Complexity    = c;
-
-%endfunction 
-    
-function DoPostPropSetup(block)
-  block.NumDworks = 2;
-  
-  block.Dwork(1).Name            = 'x1';
-  block.Dwork(1).Dimensions      = 1;
-  block.Dwork(1).DatatypeID      = 0;      % double
-  block.Dwork(1).Complexity      = 'Real'; % real
-  block.Dwork(1).UsedAsDiscState = true;
-  
-  block.Dwork(2).Name            = 'numPause';
-  block.Dwork(2).Dimensions      = 1;
-  block.Dwork(2).DatatypeID      = 7;      % uint32
-  block.Dwork(2).Complexity      = 'Real'; % real
-  block.Dwork(2).UsedAsDiscState = true;
-  
-  % Register all tunable parameters as runtime parameters.
-  block.AutoRegRuntimePrms;
-
-%endfunction
-
-function Start(block)
-
-  block.Dwork(1).Data = 0;
-  block.Dwork(2).Data = uint32(1); 
-   
-%endfunction
-
-function WriteRTW(block)
-  
-   block.WriteRTWParam('matrix', 'M',    [1 2; 3 4]);
-   block.WriteRTWParam('string', 'Mode', 'Auto');
-   
-%endfunction
 
 function Outputs(block)
   
@@ -437,9 +216,9 @@ function Outputs(block)
 
   % get current pose of the endeffector and compute pose delta to target
   robotTCPName = block.DialogPrm(2).Data;
+  maxIterations = block.DialogPrm(4).Data;
 
   % ---------------- ITERATIONS --------------------------------
-  maxIterations = 100;
   if norm(initialGuess) < 0.01
       initialGuess = monteCarloInitialGuess(configuration, robotTCPName, targetPose);
   end
@@ -449,7 +228,7 @@ function Outputs(block)
   % compute the weighted distance in the space frame: ||W * Ad_T * delta||
   currDistance = norm(diag(weights) * adjointSE3(tcpPose) * errorTwist(tcpPose, targetPose));
   numIterations = 0;
-  minDistance = 10e-4;
+  minDistance = block.DialogPrm(5).Data;
 
   while numIterations < maxIterations && currDistance > minDistance
       deltaArticulation = iterateIK(l, configuration, articulation, robotTCPName, targetPose);
@@ -461,28 +240,11 @@ function Outputs(block)
   end
 
   if numIterations >= maxIterations
-      disp("Exceeded maximum number of iterations: " + maxIterations);
-  elseif currDistance < minDistance
-      disp("Satisfied distance constraint, distance is: " + currDistance);
+      disp("Failed to satisfy constraint after " + maxIterations + " iterations. Aborting.");
   end
 
   block.OutputPort(1).Data = articulation;
   
-%endfunction
-
-% function Update(block)
-%   
-%   block.Dwork(1).Data = block.InputPort(1).Data;
-  
-
-%endfunction
-
-function Projection(block)
-
-states = block.ContStates.Data;
-block.ContStates.Data = states+eps; 
-
-%endfunction
 
 function SimStatusChange(block, s)
   
@@ -494,26 +256,10 @@ function SimStatusChange(block, s)
     disp('Resume simulation.');
   end
   
-%endfunction
     
 function Terminate(block)
 
 disp(['Terminating the block with handle ' num2str(block.BlockHandle) '.']);
-
-%endfunction
- 
-function operPointData = GetOperatingPoint(block)
-% package the Dwork data as the entire operating point of this block
-operPointData = block.Dwork(1).Data;
-
-%endfunction
-
-function SetOperatingPoint(block, operPointData)
-% the operating point of this block is the Dwork data (this method 
-% typically performs the inverse actions of the method GetOperatingPoint)
-block.Dwork(1).Data = operPointData;
-
-%endfunction
 
 %% custom function definitions
 
