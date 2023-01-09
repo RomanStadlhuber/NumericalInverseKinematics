@@ -39,6 +39,8 @@ In order for the block to work, more information is required.
 - A reference to the [Rigid Body Tree](https://de.mathworks.com/help/robotics/ref/rigidbodytree.html) object.
 - The name of the endeffector body, the frame transform of which is used as the plant state.
 - The scalar value of the damping factor that is used to formulate the constraint.
+- A maximum number of allowed iterations before aborting the optimization process.
+- The acceptance threshold for a solution.
 
 Below is an example of the configuration that can be made for the block.
 
