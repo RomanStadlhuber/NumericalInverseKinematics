@@ -89,7 +89,7 @@ currDistance = norm(Ad_T_sb0 * errorTwist(T_sb0, T_sd)); % pose distance
 minDistance = 1e-3; % consider the result converged if this distance is met
 maxIterations = 5e3; % other wise break the loop after that many iterations
 numIterations = 0; % used to count elapsed number of iterations
-articulation = monteCarloInitialGuess; % compute MC-sampled initial guess
+articulation = monteCarloInitialGuess(); % compute MC-sampled initial guess
 
 % while the distance is still too large and the maximum iterations have
 % not yet been exceeded ...
