@@ -28,7 +28,7 @@ function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTraj
        currdistance = norm(adjointSE3(T_sb) * errorTwist(T_sb, T_sd));
        % initialize the iteration counter
        numIterations = 0;
-       while currdistance > minDistance || numIterations < maxIterations
+       while currdistance > minDistance && numIterations < maxIterations
             % compute iterative change in articulation
             deltaArticulation = iterateIK(robot, articulation, tcpName, T_sd);
             % update the joint state by adding the change
