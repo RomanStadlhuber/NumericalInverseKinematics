@@ -14,7 +14,7 @@ acceptanceThreshold = 0.125;
 % convert the target transform matrix to an element in SE(3)
 goalPose = se3(targetPoseTransform);
 % initialize a list to store the random guesses
-guesses = zeros([6 initialRandomSamleCount], "double");
+guesses = zeros([numJoints initialRandomSamleCount], "double");
 distances = zeros(initialRandomSamleCount, "double");
 % a counter used to shrink the pre-allocated array after sampling
 acceptanceCount = 0;
