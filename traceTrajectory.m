@@ -44,15 +44,15 @@ function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTraj
             articulation = articulation + deltaArticulation;
             % update the system state
             T_sb = getTransform(robot, articulation, tcpName);
-            % add the new pose to the output trajectory
-            outTrajectory(:, :, idxWaypoint) = T_sb;
-            % add the generated articulation to the output
-            articulations(:, idxWaypoint) = articulation;
             % update the cost term
             currdistance = norm(adjointSE3(T_sb) * errorTwist(T_sb, T_sd));
             % increase iteration counter
             numIterations = numIterations + 1;
        end
+       % add the new pose to the output trajectory
+       outTrajectory(:, :, idxWaypoint) = T_sb;
+       % add the generated articulation to the output
+       articulations(:, idxWaypoint) = articulation;
     end
 end
 
