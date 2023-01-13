@@ -11,21 +11,28 @@
 % a tuple of the form [outTrajectory, articulations]
 % "outTrajectory" - the endeffector poses computed by the optimizer
 % "articulations" - the articulations used to generate outTrajectory
-function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTrajectory, maxIterations, minDistance, weights)
-
+function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTrajectory, maxIterations, minDistance, weights, initialGuess, numOffsetJoints)
+    % the links that need to be offset before computing the jacobian
+    jointOffset = 0;
+    if exist('numOffsetJoints', 'var')
+        jointOffset = numOffsetJoints;
+    end
+    % a diagonal weighting factor matrix defaulting to the identity
     W = eye(6);
     % set an optional weighting matrix
     if exist('weights', 'var')
         W = diag([weights(4:6), weights(1:3)]);
     end
-
     % NOTE: assume the shape of the trajectory to be (4, 4, numWaypoints)
     [~, ~, numWaypoints] = size(inTrajectory);
     % number of joints (required to fill the articulation space)
     numJoints = size(homeConfiguration(robot), 1);
     % set initial articulation to be the home joint state of the robot
-%     articulation = homeConfiguration(robot);
-    articulation = monteCarloInitialGuess(robot,tcpName,inTrajectory(:,:,1));
+    articulation = homeConfiguration(robot);
+    % set articulation to initial guess if provided
+    if exist('initialGuess', 'var')
+        articulation = initialGuess;
+    end
     % initialize the output trajectory storage
     outTrajectory = zeros([4 4 numWaypoints]);
     articulations = zeros(numJoints, numWaypoints);
@@ -40,7 +47,7 @@ function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTraj
        numIterations = 0;
        while currdistance > minDistance && numIterations < maxIterations
             % compute iterative change in articulation
-            deltaArticulation = iterateIK(robot, articulation, tcpName, T_sd);
+            deltaArticulation = iterateIK(robot, articulation, tcpName, T_sd, jointOffset);
             % update the joint state by adding the change
             articulation = articulation + deltaArticulation;
             % update the system state
@@ -49,12 +56,11 @@ function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTraj
             currdistance = norm(W * adjointSE3(T_sb) * errorTwist(T_sb, T_sd));
             % increase iteration counter
             numIterations = numIterations + 1;
-
-            % add the new pose to the output trajectory
-           outTrajectory(:, :, idxWaypoint) = T_sb;
-           % add the generated articulation to the output
-           articulations(:, idxWaypoint) = articulation;
        end
+        % add the new pose to the output trajectory
+        outTrajectory(:, :, idxWaypoint) = T_sb;
+        % add the generated articulation to the output
+        articulations(:, idxWaypoint) = articulation;
     end
 end
 
@@ -73,11 +79,11 @@ function err = errorTwist(Ta, Tb)
 end
 
 % iteration step of damped least squares IK algorithm
-function deltaArticulation = iterateIK(robot, articulation, tcpName, targetPose)
+function deltaArticulation = iterateIK(robot, articulation, tcpName, targetPose, linkOffset)
     l = 0.125;
     tcpPose = getTransform(robot, articulation, tcpName);
     localError = errorTwist(tcpPose, targetPose);
     globalError = adjointSE3(tcpPose) * localError;
-    J = spaceJacobian(robot, articulation);
+    J = spaceJacobian(robot, articulation, linkOffset);
     deltaArticulation = J.' / (J * J.' + l^2 * eye(6)) * globalError;
 end

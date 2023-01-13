@@ -4,7 +4,7 @@ function robot = getRigidBodyTree(dhparams)
     for i = 1:size(dhparams,1)
         body = rigidBody(string("body"+i));
         joint = rigidBodyJoint(string("R"+i), "revolute");
-        setFixedTransform(joint, dhparams(1,:), "dh");
+        setFixedTransform(joint, dhparams(i,:), "dh");
         body.Joint = joint;
 
         if(i == 1)

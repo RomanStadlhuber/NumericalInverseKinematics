@@ -4,8 +4,7 @@
 function bestGuess = monteCarloInitialGuess(rbTree, tcpName, targetPoseTransform)
 
 rbTree.DataFormat = 'column';
-numJoints = rbTree.NumBodies;
-
+numJoints = size(homeConfiguration(rbTree), 1);
 % how many random samples to create in total
 initialRandomSamleCount = numJoints * 500;
 % the threshold at which the linearized pose-delta norm needs to lie in

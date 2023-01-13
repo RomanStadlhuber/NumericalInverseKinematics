@@ -18,61 +18,55 @@ clc;
 
 %% create robot
 
-dhparams = [0       0       0.333   0;
-            0       -pi/2   0       0;
-            0       pi/2    0.316   0;
-            0.0825  pi/2    0       0;
-            -0.0825 -pi/2   0.384   0;
-            0       pi/2    0       0;
-            0.088   pi/2    0       0]; % DH_Params Panda
+
+% Denavit-Hartenberg parameters:
+%           A       alpha   d   theta
+dhparams = [0       0       0.333   0
+            0       -pi/2   0       0
+            0       pi/2    0.316   0
+            0.0825  pi/2    0       0
+            -0.0825 -pi/2   0.384   0
+            0       pi/2    0       0
+            0.088   pi/2    0       0];
+% NOTE: parameters obtained from
+% https://frankaemika.github.io/docs/control_parameters.html#denavithartenberg-parameters
 
 
 robot = getRigidBodyTree(dhparams);
 
 tcpName = char(robot.BodyNames(robot.NumBodies));
 
-%% create trajectory
+%% setup IK
 
-% create a single target waypoint (as in the book example)
-targetPose = [0.5   -0.5    0;
-              0.5   1.0     -0.5;
-              0.5   1.0     0.5];
-targetOrientation = [0 0 0;
-                    0 0 0; 
-                    0 pi -pi/2];
+targetPositions = [ 0.75    0.0    -0.75
+                    0.0     0.75   0.0
+                    0.6     0.8    0.6];
 
-trajectory = zeros([4 4 size(targetPose,2)]);
-
-for k = 1:size(targetPose,2)
-
-    trans = trvec2tform(targetPose(:,k).');                                    
-    rot = eul2tform(targetOrientation(:,k).',"XYZ");                        
-    trajectory(:,:,k) = [rot(1,1:3) trans(1,4);rot(2,1:3) trans(2,4);rot(3,1:3) trans(3,4);rot(4,1:3) trans(4,4)];
-
+[~, numWaypoints] = size(targetPositions);
+waypoints = zeros(4, 4, numWaypoints);
+for idxWaypoint = 1:numWaypoints
+    waypoints(:,:, idxWaypoint) = trvec2tform(targetPositions(:,idxWaypoint).');
 end
-
-%T_sd = getTransform(robot, targetArticulation, tcpName); % T(30°, 60°)
-%targetWaypoints = T_sd; % just a single target waypoint
-
-%weights = [1 1 1 1 1 1];
+weights = [0 0 0 1 1 1];
+% initialGuess = monteCarloInitialGuess(robot, tcpName, waypoints(:,:,1));
+initialGuess = homeConfiguration(robot);
+minDistance = 1e-5;
+maxIterations = 150;
 
 %% run IK
+[outTrajectory, outJointStates] = traceTrajectory(robot, tcpName, waypoints, maxIterations, minDistance, weights, initialGuess);
 
-[outTrajectory,outJointStates] = traceTrajectory(robot, tcpName, trajectory, 10, 1e-5);
-[~, ~, numWaypoints] = size(outTrajectory);
-disp("Generated " + numWaypoints + " waypoints");
-
-%% Visualization
-
-for i = 1:size(outTrajectory,3)
-    xyz(i,:) = tform2trvec(outTrajectory(:,:,i));
-end
+%% plotting
 
 figure('Visible','on')
 show(robot,outJointStates(:,end));
 
-% Visualisiere Target-Path und Ist-Path
+xyz = zeros(numWaypoints, 3);
+for i = 1:size(outTrajectory,3)
+    xyz(i,:) = tform2trvec(outTrajectory(:,:,i));
+end
+
 hold on
 plot3(xyz(:,1),xyz(:,2),xyz(:,3),'-k','LineWidth',2);
-plot3(targetPose(1,:),targetPose(2,:),targetPose(3,:),'--r','LineWidth',2)
+% plot3(waypoints(1, 4, :),waypoints(2, 4, :),waypoints(3, 4, :),'--r','LineWidth',2)
 hold off

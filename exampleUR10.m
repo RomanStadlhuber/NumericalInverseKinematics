@@ -1,27 +1,19 @@
-%% NOTES
-
-% this test script follows the example in Lynch and Park's "Modern
-% Robotics - Mechanics, Planning and Control"
-% In Ch. 6, Example 6.1 demonstrates the application of numerical inverse
-% kinematics on an RR robot in the XY-plane.
-
-% Remarks:
-% - computation of screws is explained in Ch. 3.3.3, see Ex. 3.26
-% - computation of the space Jacobian is explained in Ch. 5.1.1 + examples
-% - Ch. 6, p. 231 mentions to transform th error twist to the global frame
-% using the adjoint matrix of the TCP pose
-
-%% clear workspace and console
+clc
+clear
 close all;
-clear;
-clc;
 
-%% create robot
+%% import the robot
 
-l1 = 1.0;
-l2 = 1.0;
-dhparams = [l1   0   0  0;
-            l2   0   0  0];
+% Denavit-Hartenberg parameters:
+%           A           alpha   d       theta
+dhparams = [0           pi/2    0.1273      0
+            -0.312      0       0           0
+            -0.5723     0       0           0
+            0           pi/2    0.163941    0
+            0           -pi/2   0.1157      0
+            0           0       0.0922      0];
+% NOTE: parameters obtained from
+% https://www.universal-robots.com/articles/ur/application-installation/dh-parameters-for-calculations-of-kinematics-and-dynamics/
 
 robot = getRigidBodyTree(dhparams);
 
@@ -29,9 +21,9 @@ tcpName = char(robot.BodyNames(robot.NumBodies));
 
 %% setup IK
 
-targetPositions = [ 1.5     0.0     0.0
-                    0.5     1.5     0.0
-                    -0.5    1.0     0.0];
+targetPositions = [ 0.75    0.0    -0.75
+                    0.0     0.75   0.0
+                    0.6     0.8    0.6];
 
 [~, numWaypoints] = size(targetPositions);
 waypoints = zeros(4, 4, numWaypoints);
@@ -39,11 +31,9 @@ for idxWaypoint = 1:numWaypoints
     waypoints(:,:, idxWaypoint) = trvec2tform(targetPositions(:,idxWaypoint).');
 end
 weights = [0 0 0 1 1 1];
-% initialGuess = monteCarloInitialGuess(robot, tcpName, waypoints(:,:,1));
 initialGuess = homeConfiguration(robot);
 minDistance = 1e-5;
 maxIterations = 150;
-
 %% run IK
 [outTrajectory, outJointStates] = traceTrajectory(robot, tcpName, waypoints, maxIterations, minDistance, weights, initialGuess);
 
