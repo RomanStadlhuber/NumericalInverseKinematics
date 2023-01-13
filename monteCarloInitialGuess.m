@@ -7,7 +7,7 @@ rbTree.DataFormat = 'column';
 numJoints = rbTree.NumBodies;
 
 % how many random samples to create in total
-initialRandomSamleCount = numJoints * 3000;
+initialRandomSamleCount = numJoints * 500;
 % the threshold at which the linearized pose-delta norm needs to lie in
 % order to be accepted as a guess
 acceptanceThreshold = 0.125;

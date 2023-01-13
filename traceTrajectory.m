@@ -15,7 +15,7 @@ function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTraj
 
     W = eye(6);
     % set an optional weighting matrix
-    if exist('jointIdxOffset', 'var')
+    if exist('weights', 'var')
         W = diag([weights(4:6), weights(1:3)]);
     end
 
@@ -24,7 +24,8 @@ function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTraj
     % number of joints (required to fill the articulation space)
     numJoints = size(homeConfiguration(robot), 1);
     % set initial articulation to be the home joint state of the robot
-    articulation = homeConfiguration(robot);
+%     articulation = homeConfiguration(robot);
+    articulation = monteCarloInitialGuess(robot,tcpName,inTrajectory(:,:,1));
     % initialize the output trajectory storage
     outTrajectory = zeros([4 4 numWaypoints]);
     articulations = zeros(numJoints, numWaypoints);
@@ -45,14 +46,15 @@ function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTraj
             % update the system state
             T_sb = getTransform(robot, articulation, tcpName);
             % update the cost term
-            currdistance = norm(adjointSE3(T_sb) * errorTwist(T_sb, T_sd));
+            currdistance = norm(W * adjointSE3(T_sb) * errorTwist(T_sb, T_sd));
             % increase iteration counter
             numIterations = numIterations + 1;
+
+            % add the new pose to the output trajectory
+           outTrajectory(:, :, idxWaypoint) = T_sb;
+           % add the generated articulation to the output
+           articulations(:, idxWaypoint) = articulation;
        end
-       % add the new pose to the output trajectory
-       outTrajectory(:, :, idxWaypoint) = T_sb;
-       % add the generated articulation to the output
-       articulations(:, idxWaypoint) = articulation;
     end
 end
 

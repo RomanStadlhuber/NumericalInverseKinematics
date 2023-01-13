@@ -18,10 +18,14 @@ clc;
 
 %% create robot
 
-l1 = 1.0;
-l2 = 1.0;
-dhparams = [l1   0   0  0;
-            l2   0   0  0];
+dhparams = [0       0       0.333   0;
+            0       -pi/2   0       0;
+            0       pi/2    0.316   0;
+            0.0825  pi/2    0       0;
+            -0.0825 -pi/2   0.384   0;
+            0       pi/2    0       0;
+            0.088   pi/2    0       0]; % DH_Params Panda
+
 
 robot = getRigidBodyTree(dhparams);
 
