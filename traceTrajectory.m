@@ -5,11 +5,20 @@
 % "inTrajectory" - a (4, 4, numWaypoints) array of homogeneous transforms
 % "maxIterations" - the max. number of optimization iterations per waypoint
 % "minDistance" - the acceptance threshold for optimized pose error
+% "weights" - (optional) a row-vector of orientation and position weights
+% in the order: [rx ry rz x y z]
 % --- returns ---
 % a tuple of the form [outTrajectory, articulations]
 % "outTrajectory" - the endeffector poses computed by the optimizer
 % "articulations" - the articulations used to generate outTrajectory
-function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTrajectory, maxIterations, minDistance)
+function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTrajectory, maxIterations, minDistance, weights)
+
+    W = eye(6);
+    % set an optional weighting matrix
+    if exist('jointIdxOffset', 'var')
+        W = diag([weights(4:6), weights(1:3)]);
+    end
+
     % NOTE: assume the shape of the trajectory to be (4, 4, numWaypoints)
     [~, ~, numWaypoints] = size(inTrajectory);
     % number of joints (required to fill the articulation space)
@@ -25,7 +34,7 @@ function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTraj
        % initialize the system state
        T_sb = getTransform(robot, articulation, tcpName);
        % initialize the cost term
-       currdistance = norm(adjointSE3(T_sb) * errorTwist(T_sb, T_sd));
+       currdistance = norm(W * adjointSE3(T_sb) * errorTwist(T_sb, T_sd));
        % initialize the iteration counter
        numIterations = 0;
        while currdistance > minDistance && numIterations < maxIterations
