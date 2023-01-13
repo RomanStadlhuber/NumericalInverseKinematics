@@ -1,16 +1,24 @@
 % trace a trajectory with the endeffector, outputs the computed trajectory
+% --- parameters ---
 % "robot" - a RigidBodyTree object representing the serial open chain
 % "tcpName" - the name of the endeffector body used to compute transforms
 % "inTrajectory" - a (4, 4, numWaypoints) array of homogeneous transforms
 % "maxIterations" - the max. number of optimization iterations per waypoint
 % "minDistance" - the acceptance threshold for optimized pose error
-function outTrajectory = traceTrajectory(robot, tcpName, inTrajectory, maxIterations, minDistance)
+% --- returns ---
+% a tuple of the form [outTrajectory, articulations]
+% "outTrajectory" - the endeffector poses computed by the optimizer
+% "articulations" - the articulations used to generate outTrajectory
+function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTrajectory, maxIterations, minDistance)
     % NOTE: assume the shape of the trajectory to be (4, 4, numWaypoints)
     [~, ~, numWaypoints] = size(inTrajectory);
+    % number of joints (required to fill the articulation space)
+    numJoints = size(homeConfiguration(robot), 1);
     % set initial articulation to be the home joint state of the robot
     articulation = homeConfiguration(robot);
     % initialize the output trajectory storage
     outTrajectory = zeros([4 4 numWaypoints]);
+    articulations = zeros(numJoints, numWaypoints);
     for idxWaypoint = 1:numWaypoints
        % load the current target waypoint
        T_sd = inTrajectory(:, :, idxWaypoint); 
@@ -29,6 +37,8 @@ function outTrajectory = traceTrajectory(robot, tcpName, inTrajectory, maxIterat
             T_sb = getTransform(robot, articulation, tcpName);
             % add the new pose to the output trajectory
             outTrajectory(:, :, idxWaypoint) = T_sb;
+            % add the generated articulation to the output
+            articulations(:, idxWaypoint) = articulation;
             % update the cost term
             currdistance = norm(adjointSE3(T_sb) * errorTwist(T_sb, T_sd));
             % increase iteration counter
