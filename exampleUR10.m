@@ -49,5 +49,5 @@ end
 
 hold on
 plot3(xyz(:,1),xyz(:,2),xyz(:,3),'-k','LineWidth',2);
-% plot3(waypoints(1, 4, :),waypoints(2, 4, :),waypoints(3, 4, :),'--r','LineWidth',2)
+plot3(targetPositions(1,:),targetPositions(2,:),targetPositions(3,:),'--r','LineWidth',2)
 hold off
