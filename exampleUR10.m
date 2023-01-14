@@ -14,8 +14,9 @@ dhparams = [0           pi/2    0.1273      0
             0           0       0.0922      0];
 % NOTE: parameters obtained from
 % https://www.universal-robots.com/articles/ur/application-installation/dh-parameters-for-calculations-of-kinematics-and-dynamics/
+jTypes = ["revolute" "revolute" "revolute" "revolute" "revolute" "revolute"];
 
-robot = getRigidBodyTree(dhparams);
+robot = getRigidBodyTree(dhparams, jTypes);
 
 tcpName = char(robot.BodyNames(robot.NumBodies));
 

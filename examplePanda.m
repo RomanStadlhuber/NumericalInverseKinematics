@@ -30,9 +30,9 @@ dhparams = [0       0       0.333   0
             0.088   pi/2    0       0];
 % NOTE: parameters obtained from
 % https://frankaemika.github.io/docs/control_parameters.html#denavithartenberg-parameters
+jTypes = ["revolute" "revolute" "revolute" "revolute" "revolute" "revolute" "revolute"];
 
-
-robot = getRigidBodyTree(dhparams);
+robot = getRigidBodyTree(dhparams, jTypes);
 
 tcpName = char(robot.BodyNames(robot.NumBodies));
 

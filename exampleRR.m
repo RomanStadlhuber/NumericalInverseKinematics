@@ -23,7 +23,9 @@ l2 = 1.0;
 dhparams = [l1   0   0  0;
             l2   0   0  0];
 
-robot = getRigidBodyTree(dhparams);
+jTypes = ["revolute" "revolute"];
+
+robot = getRigidBodyTree(dhparams, jTypes);
 
 tcpName = char(robot.BodyNames(robot.NumBodies));
 
