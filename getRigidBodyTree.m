@@ -14,17 +14,17 @@ function robot = getRigidBodyTree(dhParams, jointTypes)
     for i = 1:size(dhParams,1)
         switch jTypes(i)
             case 'fixed'
-                jointAbr = 'F';
+                jointAbr = string("F"+i);
             case 'revolute'
-                jointAbr = 'R';
+                jointAbr = string("R"+i);
             case 'prismatic'
-                jointAbr = 'P';
+                jointAbr = string("P"+i);
             otherwise
                 throw(MException('','No Joint type matching %s', jTypes(i)))
         end
 
         body = rigidBody(string("body"+i));
-        joint = rigidBodyJoint(string(jointAbr+i), jTypes(i));
+        joint = rigidBodyJoint(jointAbr, jTypes(i));
         setFixedTransform(joint, dhParams(i,:), "dh");
         body.Joint = joint;
 
