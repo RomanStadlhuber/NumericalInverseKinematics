@@ -41,12 +41,13 @@ In order for the block to work, more information is required.
 - The scalar value of the damping factor that is used to formulate the constraint.
 - A maximum number of allowed iterations before aborting the optimization process.
 - The acceptance threshold for a solution.
+- Whether or not the block should compute its own initial guess.
 
 Below is an example of the configuration that can be made for the block.
 
 ![Configuration Mask of the IK Block](ik-block_mask.png)
 
-Experiments with the UR10 6DOF arm have shown fast convergence and sufficient results with a damping factor of `0.125`.
+Experiments with the UR10 6DOF arm have shown fast convergence and sufficient results with a damping factor of `0.125`. The robot was able to reach its goal without an initial guess.
 
 ### Matlab Examples - Understanding the Code
 
