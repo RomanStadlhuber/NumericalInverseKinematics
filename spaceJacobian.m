@@ -1,11 +1,12 @@
 % Algorithm to compute the "space Jacobian matrix" as it is described in
 % "Modern Robotics", Ch. 5.1.1
-function J = spaceJacobian(rigidBodyTree, currArticulation, jointIdxOffset)
+function J = spaceJacobian(rigidBodyTree, currArticulation)
 
     % set articulation input vector format to column
     rigidBodyTree.DataFormat = "column";
     thetaZero = homeConfiguration(rigidBodyTree);
     [numJoints, ~] = size(thetaZero);
+    numBodies = rigidBodyTree.NumBodies;
     Sxs = zeros([4 4 numJoints]); % screw matrix [se(3)] storage
     Svecs = zeros([6 numJoints]); % screw vector storage
     % the output Jacobian matrix
@@ -13,18 +14,13 @@ function J = spaceJacobian(rigidBodyTree, currArticulation, jointIdxOffset)
 
     % compute space jacobian
     for i = 1:numJoints
-        % if an offset value was specified, use it when indexing the tree
-        offset = 0;
-        if exist('jointIdxOffset', 'var')
-            offset = jointIdxOffset;
-        end
-        jointName = char(rigidBodyTree.BodyNames(i + offset));
+        tcpName = char(rigidBodyTree.BodyNames(numBodies));
         delta = zeros(numJoints,1);
         delta(i) = 1; % NOTE: the value of the delta angle does not matter
         % the transform of the i-th joint at the home pose
-        hTi = getTransform(rigidBodyTree, thetaZero, jointName);
+        hTi = getTransform(rigidBodyTree, thetaZero, tcpName);
         % the transform of the i-th joint after a delta being applied 
-        dTi = getTransform(rigidBodyTree, thetaZero + delta, jointName);
+        dTi = getTransform(rigidBodyTree, thetaZero + delta, tcpName);
         % compute screw matrix
         SxQ = logm(dTi / hTi); % NOTE: this inverts the right term
         % obtain screw vector

@@ -11,12 +11,7 @@
 % a tuple of the form [outTrajectory, articulations]
 % "outTrajectory" - the endeffector poses computed by the optimizer
 % "articulations" - the articulations used to generate outTrajectory
-function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTrajectory, maxIterations, minDistance, weights, initialGuess, numOffsetJoints)
-    % the links that need to be offset before computing the jacobian
-    jointOffset = 0;
-    if exist('numOffsetJoints', 'var')
-        jointOffset = numOffsetJoints;
-    end
+function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTrajectory, maxIterations, minDistance, weights, initialGuess)
     % a diagonal weighting factor matrix defaulting to the identity
     W = eye(6);
     % set an optional weighting matrix
@@ -47,7 +42,7 @@ function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTraj
        numIterations = 0;
        while currdistance > minDistance && numIterations < maxIterations
             % compute iterative change in articulation
-            deltaArticulation = iterateIK(robot, articulation, tcpName, T_sd, jointOffset);
+            deltaArticulation = iterateIK(robot, articulation, tcpName, T_sd);
             % update the joint state by adding the change
             articulation = articulation + deltaArticulation;
             % update the system state
@@ -79,11 +74,11 @@ function err = errorTwist(Ta, Tb)
 end
 
 % iteration step of damped least squares IK algorithm
-function deltaArticulation = iterateIK(robot, articulation, tcpName, targetPose, linkOffset)
+function deltaArticulation = iterateIK(robot, articulation, tcpName, targetPose)
     l = 0.125;
     tcpPose = getTransform(robot, articulation, tcpName);
     localError = errorTwist(tcpPose, targetPose);
     globalError = adjointSE3(tcpPose) * localError;
-    J = spaceJacobian(robot, articulation, linkOffset);
+    J = spaceJacobian(robot, articulation);
     deltaArticulation = J.' / (J * J.' + l^2 * eye(6)) * globalError;
 end
