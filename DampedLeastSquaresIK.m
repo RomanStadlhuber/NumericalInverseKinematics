@@ -51,8 +51,8 @@ function setup(block)
   block.InputPort(3).Dimensions = [6,1];
 
   % Register the parameters.
-  block.NumDialogPrms     = 5;
-  block.DialogPrmsTunable = {'Nontunable', 'Nontunable', 'Tunable', 'Tunable', 'Tunable'}; 
+  block.NumDialogPrms     = 6;
+  block.DialogPrmsTunable = {'Nontunable', 'Nontunable', 'Tunable', 'Tunable', 'Tunable', 'Nontunable'}; 
   % Set up the continuous states.
   block.NumContStates = 0;
   block.SampleTimes = [0.1 0]; % first value is block sample time in seconds
@@ -137,6 +137,7 @@ tcpName = block.DialogPrm(2).Data;
 dampingfactor = block.DialogPrm(3).Data;
 maxIterations = block.DialogPrm(4).Data;
 acceptanceThreshold = block.DialogPrm(5).Data;
+computeInitialGuess = block.DialogPrm(6).Data;
 % throw exception if the provided parameter is no rigidbody tree
 if ~isa(configuration, 'rigidBodyTree')
     me = MSLException(block.BlockHandle, message('Requires a RigidBodyTree object'));
@@ -144,12 +145,12 @@ if ~isa(configuration, 'rigidBodyTree')
 end
 % throw if tcp frame name is not a string
 if ~isa(tcpName, "string")
-    me = MSLException(block.BlockHandle, message('Requires a string of the TCP frames name'));
+    me = MSLException(block.BlockHandle, message('Requires a string of the TCP frames name.'));
     trhow(me)
 end
 % throw if damping coefficient is not a real double scalar
 if ~isa(dampingfactor, "double")
-    me = MSLException(block.BlockHandle, message('DampingFactor needs to be a positive real scalar'));
+    me = MSLException(block.BlockHandle, message('DampingFactor needs to be a positive real scalar.'));
     trhow(me)
 end
 % throw if max number of iterations is not an integer value or equal to or
@@ -159,7 +160,11 @@ if ~isa(maxIterations, "int32") || int32(maxIterations) <= 0
     throw(me)
 end
 if ~isa(acceptanceThreshold, "double") || double(acceptanceThreshold) <= 0.0
-    me = MSLException(block.BlockHandle, message('Threshold needs to be a positive real scalar'));
+    me = MSLException(block.BlockHandle, message('Threshold needs to be a positive real scalar.'));
+    trhow(me)
+end
+if size(logical(computeInitialGuess), 2) > 1
+    me = MSLException(block.BlockHandle, message('Initial guess indicator needs to be a logical value.'));
     trhow(me)
 end
 
@@ -217,10 +222,17 @@ function Outputs(block)
   % get current pose of the endeffector and compute pose delta to target
   robotTCPName = block.DialogPrm(2).Data;
   maxIterations = block.DialogPrm(4).Data;
+  % whether the block should compute its own initial guess
+  computeInitialGuess = block.DialogPrm(6).Data;
 
   % ---------------- ITERATIONS --------------------------------
-  if norm(initialGuess) < 0.01
+  distanceInitialGuessFromHome = norm(initialGuess - homeConfiguration(configuration));
+  if distanceInitialGuessFromHome < 0.01 && computeInitialGuess
+      disp("Computing initial guess from random samples (this may take a moment).")
       initialGuess = monteCarloInitialGuess(configuration, robotTCPName, targetPose);
+  
+  elseif distanceInitialGuessFromHome < 0.01 && ~computeInitialGuess 
+      disp("Using home-pose as initial guess.");
   end
   articulation = initialGuess;
   % compute initial error before performing optimization
