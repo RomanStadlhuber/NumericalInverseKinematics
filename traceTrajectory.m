@@ -63,9 +63,9 @@ end
 
 % compute error twist in body (=TCP frame)
 function err = errorTwist(Ta, Tb)
-   % pose delta as seen from tangent at point a
-   deltaA =  logm(Ta \ Tb);
-   err_tvec = deltaA(1:3, 4); % tangent translation vector
+  % pose delta as seen from tangent at point a
+  deltaA =  logm(Ta \ Tb);
+  err_tvec = deltaA(1:3, 4); % tangent translation vector
   w_x = deltaA(1:3, 1:3); % tangent rotation vector
   err_rvec = [w_x(3,2); w_x(1,3); w_x(2,1)];
   % weighted error vector in twist coordinates at the local

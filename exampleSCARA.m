@@ -19,9 +19,9 @@ tcpName = char(robot.BodyNames(robot.NumBodies));
 
 %% setup IK
 
-targetPositions = [ 0.08    0.0    0.0
-                    0.0     0.075  0.05
-                    -0.08   0.8    0.0];
+targetPositions = [ 0.08    0.0    -0.1
+                    0.0     0.075   0.0
+                    0.0     0.25    0.0];
 
 [~, numWaypoints] = size(targetPositions);
 waypoints = zeros(4, 4, numWaypoints);
