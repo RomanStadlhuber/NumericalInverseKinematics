@@ -17,6 +17,7 @@
 !getRigidBodyTree.m
 !spaceJacobian.m
 !traceTrajectory.m
+!viz.m
 
 # ... also, provide a self-contained example ...
 !simpleRobotTest.m
@@ -27,3 +28,7 @@
 # ... the images used in the readme and (pot. other purposes) ...
 !simulink_example.png
 !ik-block_mask.png
+
+# ... the image-plots for the paper
+!example_plot_panda.png
+!example_plot_ur10.png
