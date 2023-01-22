@@ -22,33 +22,23 @@ tcpName = char(robot.BodyNames(robot.NumBodies));
 
 %% setup IK
 
-targetPositions = [ 0.75    0.0    -0.75
-                    0.0     0.75   0.0
-                    0.6     0.8    0.6];
+targetPositions = [ 0.17   0.12   0.05  -0.03  -0.12  -0.10  -0.14  -0.18  -0.15
+                    0.09   0.15   0.20   0.20   0.15   0.15   0.08  -0.10  -0.07
 
 [~, numWaypoints] = size(targetPositions);
 waypoints = zeros(4, 4, numWaypoints);
 for idxWaypoint = 1:numWaypoints
     waypoints(:,:, idxWaypoint) = trvec2tform(targetPositions(:,idxWaypoint).');
 end
+
 weights = [0 0 0 1 1 1];
 initialGuess = homeConfiguration(robot);
 minDistance = 1e-5;
 maxIterations = 150;
+% set to true to obtain diagnostic information in the workspace
+diagnosticMode = false;
 %% run IK
-[outTrajectory, outJointStates] = traceTrajectory(robot, tcpName, waypoints, maxIterations, minDistance, weights, initialGuess);
+[outTrajectory, outJointStates] = traceTrajectory(robot, tcpName, waypoints, maxIterations, minDistance, weights, initialGuess, diagnosticMode);
 
-%% plotting
-
-figure('Visible','on')
-show(robot,outJointStates(:,end));
-
-xyz = zeros(numWaypoints, 3);
-for i = 1:size(outTrajectory,3)
-    xyz(i,:) = tform2trvec(outTrajectory(:,:,i));
-end
-
-hold on
-plot3(xyz(:,1),xyz(:,2),xyz(:,3),'-k','LineWidth',2);
-plot3(targetPositions(1,:),targetPositions(2,:),targetPositions(3,:),'--r','LineWidth',2)
-hold off
+%% plot trajectory
+viz(robot, outTrajectory, targetPositions, outJointStates);
