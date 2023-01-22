@@ -1,3 +1,4 @@
+%% clear workspace and console
 clc
 clear
 close all;
@@ -35,12 +36,14 @@ for idxWaypoint = 1:numWaypoints
 end
 
 weights = [0 0 0 1 1 1];
-initialGuess = homeConfiguration(robot);
+initialGuess = monteCarloInitialGuess(robot, tcpName, waypoints(:,:,1));
+% initialGuess = homeConfiguration(robot);
 minDistance = 1e-5;
 maxIterations = 150;
-
+% set to true to obtain diagnostic information in the workspace
+diagnosticMode = false;
 %% run IK
-[outTrajectory, outJointStates] = traceTrajectory(robot, tcpName, waypoints, maxIterations, minDistance, weights, initialGuess);
+[outTrajectory, outJointStates] = traceTrajectory(robot, tcpName, waypoints, maxIterations, minDistance, weights, initialGuess, diagnosticMode);
 
 %% plot trajectory
 viz(robot, outTrajectory, targetPositions, outJointStates);

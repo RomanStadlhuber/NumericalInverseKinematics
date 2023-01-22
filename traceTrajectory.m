@@ -11,7 +11,13 @@
 % a tuple of the form [outTrajectory, articulations]
 % "outTrajectory" - the endeffector poses computed by the optimizer
 % "articulations" - the articulations used to generate outTrajectory
-function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTrajectory, maxIterations, minDistance, weights, initialGuess)
+function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTrajectory, maxIterations, minDistance, weights, initialGuess, diagnostic)
+    % set a flag prompting the export of diagnostic information upon
+    % exiting the function
+    diagnosticMode = 0;
+    if exist("diagnostic", "var")
+        diagnosticMode = logical(diagnostic);
+    end
     % a diagonal weighting factor matrix defaulting to the identity
     W = eye(6);
     % set an optional weighting matrix
@@ -31,6 +37,7 @@ function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTraj
     % initialize the output trajectory storage
     outTrajectory = zeros([4 4 numWaypoints]);
     articulations = zeros(numJoints, numWaypoints);
+    iterationsPerWaypoint = zeros([1 numWaypoints], "int32");
     for idxWaypoint = 1:numWaypoints
        % load the current target waypoint
        T_sd = inTrajectory(:, :, idxWaypoint); 
@@ -52,10 +59,22 @@ function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTraj
             % increase iteration counter
             numIterations = numIterations + 1;
        end
-        % add the new pose to the output trajectory
-        outTrajectory(:, :, idxWaypoint) = T_sb;
-        % add the generated articulation to the output
-        articulations(:, idxWaypoint) = articulation;
+       % add the new pose to the output trajectory
+       outTrajectory(:, :, idxWaypoint) = T_sb;
+       % add the generated articulation to the output
+       articulations(:, idxWaypoint) = articulation;
+       % if in diagnostic mode, set the number of iterations used to
+       % approach a waypoint
+       if diagnosticMode
+           iterationsPerWaypoint(idxWaypoint) = numIterations;
+       end
+    end
+    if diagnosticMode
+        % store the number of solver iterations that were required to
+        % approach a waypoint in the base workspace
+        assignin("base", "iterationsPerWaypoint", iterationsPerWaypoint);
+        % store the final error in the base workspace
+        assignin("base", "finalError", currdistance);
     end
 end
 

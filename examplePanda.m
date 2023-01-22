@@ -1,16 +1,3 @@
-%% NOTES
-
-% this test script follows the example in Lynch and Park's "Modern
-% Robotics - Mechanics, Planning and Control"
-% In Ch. 6, Example 6.1 demonstrates the application of numerical inverse
-% kinematics on an RR robot in the XY-plane.
-
-% Remarks:
-% - computation of screws is explained in Ch. 3.3.3, see Ex. 3.26
-% - computation of the space Jacobian is explained in Ch. 5.1.1 + examples
-% - Ch. 6, p. 231 mentions to transform th error twist to the global frame
-% using the adjoint matrix of the TCP pose
-
 %% clear workspace and console
 close all;
 clear;
@@ -54,9 +41,10 @@ weights = [0 0 0 1 1 1];
 initialGuess = homeConfiguration(robot);
 minDistance = 1e-5;
 maxIterations = 150;
-
+% set to true to obtain diagnostic information in the workspace
+diagnosticMode = false;
 %% run IK
-[outTrajectory, outJointStates] = traceTrajectory(robot, tcpName, waypoints, maxIterations, minDistance, weights, initialGuess);
+[outTrajectory, outJointStates] = traceTrajectory(robot, tcpName, waypoints, maxIterations, minDistance, weights, initialGuess, diagnosticMode);
 
 %% plot trajectory
 viz(robot, outTrajectory, targetPositions, outJointStates);
