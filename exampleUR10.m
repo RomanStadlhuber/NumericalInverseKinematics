@@ -24,9 +24,6 @@ tcpName = char(robot.BodyNames(robot.NumBodies));
 
 targetPositions = [ 0.17   0.12   0.05  -0.03  -0.12  -0.10  -0.14  -0.18  -0.15
                     0.09   0.15   0.20   0.20   0.15   0.15   0.08  -0.10  -0.07
-                    0.05   0.10   0.08   0.14   0.20   0.16   0.07   0.04   0.20];
-
-targetPositions = 4 .* targetPositions;
 
 [~, numWaypoints] = size(targetPositions);
 waypoints = zeros(4, 4, numWaypoints);
@@ -38,9 +35,10 @@ weights = [0 0 0 1 1 1];
 initialGuess = homeConfiguration(robot);
 minDistance = 1e-5;
 maxIterations = 150;
-
+% set to true to obtain diagnostic information in the workspace
+diagnosticMode = false;
 %% run IK
-[outTrajectory, outJointStates] = traceTrajectory(robot, tcpName, waypoints, maxIterations, minDistance, weights, initialGuess);
+[outTrajectory, outJointStates] = traceTrajectory(robot, tcpName, waypoints, maxIterations, minDistance, weights, initialGuess, diagnosticMode);
 
 %% plot trajectory
 viz(robot, outTrajectory, targetPositions, outJointStates);
