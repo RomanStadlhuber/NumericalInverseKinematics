@@ -19,7 +19,7 @@ Besides the example code, the following files are absolutely required in order f
 - `DampedLeastSquaresIK.m` - the Level 2 S-Function that implements the solver.
 - `dlsik_lib.slx` - the simulink block library.
 - `adjointSE3.m` - computes the SE(3) Adjoint of a transform, used to transfer local twists to the Lie-Algebra
-- `spaceJacobian` - computes the global interpretation of the Jacobian matrix used during optimization.
+- `spaceJacobian.m` - computes the global interpretation of the Jacobian matrix used during optimization.
 - `monteCarloInitialGuess.m` - generates an approximative initial guess using MC sampling.
 
 ### Simulink
@@ -49,93 +49,84 @@ Below is an example of the configuration that can be made for the block.
 
 Experiments with the UR10 6DOF arm have shown fast convergence and sufficient results with a damping factor of `0.125`. The robot was able to reach its goal without an initial guess.
 
-### Matlab Examples - Understanding the Code
+## Matlab Examples - Understanding the Code
 
 In order to get a better understanding of what is happening underneath the hood, some standalone example scripts are provided.
 
 - `simpleRobotTest.m` - which implements the LM optimization on _Example 6.1_ in _"Modern Robotics"_ [(Lynch and Park, 2017)](http://hades.mech.northwestern.edu/images/7/7f/MR.pdf).
-- `ur10IKDemo.m` - loads the tree configuration of a UR10 and computes the IK of a preset pose.
+- `exampleUR10.m` and `examplePanda.m` - both concisely demonstrate quick usage by constructing a rigid body tree object, desired trajectory waypoints and invoking the solver method.
 
 You can modify one of the examples to load your own robot and get an idea on how to setup an IK solver for it.
 
-## Misceral Information
+### Creating a Rigid Body Tree
 
-### Indexing Offset for Auto-Differentiation
-
-The only information required by the `spaceJacobian` function is a reference to the rigid body tree and its current joint-state.
+Create a matrix contaning the DH parameters of the robot. Set the desired joint types in an additional array.
 
 ```matlab
-J = spaceJacobian(robot, articulation); % default way to compute the jacobian
+% Denavit-Hartenberg parameters:
+%           A           alpha   d       theta
+dhparams = [0           pi/2    0.1273      0
+            -0.312      0       0           0
+            -0.5723     0       0           0
+            0           pi/2    0.163941    0
+            0           -pi/2   0.1157      0
+            0           0       0.0922      0];
+
+jTypes = ["revolute" "revolute" "revolute" "revolute" "revolute" "revolute"];
 ```
 
-However, in case your tree contains one or more inert bodies at the first indices, an indexing-offset can be passed to the function as well.
+The function `getRigidBodytree` contsructs a tree object that can be used for optimization.
 
 ```matlab
-J = spaceJacobian(robot, articulation, indexingOffset) % only begin indexing after the offset.
+robot = getRigidBodyTree(dhparams, jTypes);
 ```
 
-Note however, that the function will assume that all links following the offset will be articulated by joints, i.e. there aren't any inert bodies after the first link up until the endeffector.
-
-### Explaining the IK Loop step-by-step
-
-In order for an IK loop to work, there are two criteria that need to be predetermined before implementing an optimization procedure.
-
-- The acceptable lower bound of the pose error (usually expressed by the weighted norm of the local twist).
-- A maximum count of iterations to be performed, after which the optimization needs to stop.
-
-The optimizer will then abort when either of these criteria are met. The following code snippet demonstrates the implementation of one such approach to optimization.
+Also, don't forget to provide the name of the endeffector such that it can be used for auto-differentiation.
 
 ```matlab
-%% numerical IK implementation example
-Ad_T_sb0 = adjointSE3(T_sb0); % the adjoint matrix at the start
-currDistance = norm(Ad_T_sb0 * errorTwist(T_sb0, T_sd)); % pose distance
-minDistance = 1e-3; % consider the result converged if this distance is met
-maxIterations = 5e3; % other wise break the loop after that many iterations
-numIterations = 0; % used to count elapsed number of iterations
-articulation = monteCarloInitialGuess(); % compute MC-sampled initial guess
-
-% while the distance is still too large and the maximum iterations have
-% not yet been exceeded ...
-while currDistance > minDistance && numIterations < maxIterations
-    % ... compute the change in articulation using the optimizer ...
-    deltaArticulation = iterateIK(robot, articulation, tcpName, T_sd);
-    % ... apply that change to the current articulation ...
-    articulation = articulation + deltaArticulation;
-    % ... apply the new state to the system ...
-    tcpPose = getTransform(robot, articulation, tcpName);
-    % ... update the current pose error and increase the iteration count...
-    currDistance = norm(adjointSE3(tcpPose) * errorTwist(tcpPose, T_sd));
-    numIterations = numIterations + 1;
-end
-
-% display the result of the optimization
-disp("Exiting after " + numIterations + " iterations");
-disp("Final error: " ...
-    + norm(adjointSE3(tcpPose) * errorTwist(tcpPose, T_sd)));
+tcpName = char(robot.BodyNames(robot.NumBodies));
 ```
 
-Whereby the above example uses a function called `iterateIK`, which is implements the optimization algorithm. One such implementation (as is used in this library) is provided here.
+### Configuring and Invoking the Optimizer
+
+Given a set of waypoint transformations, represented by 4 by 4 affine transform matrices (the waypoint list ultimately being of size `[4 4 n]` for a set of `n` waypoints), the following information configures the solver:
 
 ```matlab
-function deltaArticulation = iterateIK(robot, articulation, tcpName, targetPose)
-    l = 0.125; % define a damping constant
-    tcpPose = getTransform(robot, articulation, tcpName); % compute the current pose (system state)
-    localError = errorTwist(tcpPose, targetPose); % the error twist in the local tangent space
-    globalError = adjointSE3(tcpPose) * localError; % transform error to the lie-algebra
-    J = spaceJacobian(robot, articulation); % compute the jacobian
-    deltaArticulation = J.' / (J * J.' + l^2 * eye(6)) * globalError; % the damped least squares formula
-end
+weights = [0 0 0 1 1 1]; % use the first three for orientation and the latter for translation
+initialGuess = homeConfiguration(robot);
+minDistance = 1e-5;
+maxIterations = 150;
+```
+
+An initial guess using selective random sampling may optionally be provided:
+
+```matlab
+initialGuess = monteCarloInitialGuess(robot, tcpName, waypoints(:,:,1));
+```
+
+The function `traceTrajectory` then generates both the trajectory traced by the endeffector using the optimized solutions as well as the joint-angle values themselves.
+
+```matlab
+[outTrajectory, outJointStates] = traceTrajectory(robot, tcpName, waypoints, maxIterations, minDistance, weights, initialGuess);
+```
+
+### Plotting the Results
+
+To give visual feedback of how well the desired endeffector-trajectory could be traced, call the `viz` function using the output information.
+
+```matlab
+viz(robot, outTrajectory, targetPositions, outJointStates);
 ```
 
 For further details, refer to the provided examples and the literature mentioned below.
 
-### Further Resources
+## Further Resources
 
-#### Remarks
+### Remarks
 
 In this library, a manifold representation in SE(3) was chosen in favor of the reduced geometric form introduced in (Buss, 2009) in order to provide more generality and avoid the problem of gimbal lock that might arise when using Euler-angles. The Levenberg-Marquardt optimization algorithm was favored instead of the Newton-Rhapson Method - which is used by (Lynich and Park, 2017) - to guarantee stability in the neighborhood of local minima. Approximation and control is computed in the Lie-algebra se(3) instead of the local tangent space purely out of personal preference.
 
-#### Sources
+### Sources
 
 Below is a list of recommended readings about the topics of Lie-Groups, On-Manifold Optimization and Inverse Kinematics for serial manipulators.
 
