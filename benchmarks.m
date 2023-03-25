@@ -53,6 +53,8 @@ diagnosticMode = true;
 [outTrajectoryBFGS, outJointStatesBFGS] = traceTrajectoryBFGS(robot, tcpName, waypoints, maxIterations, minDistance, weights, initialGuess, diagnosticMode);
 
 %% print diagnostics
+disp("min. iterations");
+disp("GN: " + min(iterationsPerWaypointGN) + "  LM: " + min(iterationsPerWaypoint) + "  BFGS: " + min(iterationsPerWaypointBFGS));
 disp("avg. iterations");
 disp("GN: " + mean(iterationsPerWaypointGN) + "  LM: " + mean(iterationsPerWaypoint) + "  BFGS: " + mean(iterationsPerWaypointBFGS));
 disp("max. iterations");
@@ -64,7 +66,7 @@ disp("GN: " + max(iterationsPerWaypointGN) + "  LM: " + max(iterationsPerWaypoin
 
 
 %% plot trajectory
-viz(robot, outTrajectoryBFGS, targetPositions, outJointStatesBFGS);
+viz(robot, outTrajectoryLM, targetPositions, outJointStatesLM);
 
 %% additional function definitions
 
