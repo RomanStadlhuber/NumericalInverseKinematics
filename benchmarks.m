@@ -58,6 +58,47 @@ disp("GN: " + mean(iterationsPerWaypointGN) + "  LM: " + mean(iterationsPerWaypo
 disp("max. iterations");
 disp("GN: " + max(iterationsPerWaypointGN) + "  LM: " + max(iterationsPerWaypoint) + "  BFGS: " + max(iterationsPerWaypointBFGS));
 
+[minErrorGN, avgErrorGN, maxErrorGN] = evaluateTrajectory(waypoints, outTrajectoryGN, weights);
+[minErrorLM, avgErrorLM, maxErrorLM] = evaluateTrajectory(waypoints, outTrajectoryLM, weights);
+[minErrorBFGS, avgErrorBFGS, maxErrorBFGS] = evaluateTrajectory(waypoints, outTrajectoryBFGS, weights);
+
 
 %% plot trajectory
 viz(robot, outTrajectoryBFGS, targetPositions, outJointStatesBFGS);
+
+%% additional function definitions
+
+% evaluate the an output trajectory w.r.t. a target trajectory
+function [minError, avgError, maxError] = evaluateTrajectory(targetTrajectory, outputTrajectory, weights)
+
+    % a diagonal weighting factor matrix defaulting to the identity
+    W = eye(6);
+    % set an optional weighting matrix
+    if exist('weights', 'var')
+        W = diag([weights(4:6), weights(1:3)]);
+    end
+    [~, ~, numWaypoints] = size(targetTrajectory);
+    localErrors = zeros([1 numWaypoints]);
+    for idxWaypoint = 1:numWaypoints
+        T_sd = targetTrajectory(:, :, idxWaypoint);
+        T_sb = outputTrajectory(:, :, idxWaypoint);
+        error = W * errorTwist(T_sb, T_sd);
+        localErrors(idxWaypoint) = norm(error);
+    end
+
+    minError = min(localErrors);
+    avgError = mean(localErrors);
+    maxError = max(localErrors);
+end
+
+% compute error twist in body (=TCP frame)
+function err = errorTwist(Ta, Tb)
+  % pose delta as seen from tangent at point a
+  deltaA =  logm(Ta \ Tb);
+  err_tvec = deltaA(1:3, 4); % tangent translation vector
+  w_x = deltaA(1:3, 1:3); % tangent rotation vector
+  err_rvec = [w_x(3,2); w_x(1,3); w_x(2,1)];
+  % weighted error vector in twist coordinates at the local
+  % tangent-space
+  err = [err_tvec; err_rvec];
+end

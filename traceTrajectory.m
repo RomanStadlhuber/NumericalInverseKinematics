@@ -94,7 +94,7 @@ end
 
 % iteration step of damped least squares IK algorithm
 function deltaArticulation = iterateIK(robot, articulation, tcpName, targetPose)
-    l = 0.0000125;
+    l = 0.0125;
     tcpPose = getTransform(robot, articulation, tcpName);
     localError = errorTwist(tcpPose, targetPose);
     globalError = adjointSE3(tcpPose) * localError;
