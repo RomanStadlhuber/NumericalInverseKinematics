@@ -72,9 +72,9 @@ function [outTrajectory, articulations] = traceTrajectory(robot, tcpName, inTraj
     if diagnosticMode
         % store the number of solver iterations that were required to
         % approach a waypoint in the base workspace
-        assignin("base", "iterationsPerWaypoint", iterationsPerWaypoint);
+        assignin("base", "iterationsPerWaypointGN", iterationsPerWaypoint);
         % store the final error in the base workspace
-        assignin("base", "finalError", currdistance);
+        assignin("base", "finalErrorGN", currdistance);
     end
 end
 
@@ -94,10 +94,9 @@ end
 
 % iteration step of damped least squares IK algorithm
 function deltaArticulation = iterateIK(robot, articulation, tcpName, targetPose)
-    l = 0.0000125;
     tcpPose = getTransform(robot, articulation, tcpName);
     localError = errorTwist(tcpPose, targetPose);
     globalError = adjointSE3(tcpPose) * localError;
     J = spaceJacobian(robot, articulation);
-    deltaArticulation = J.' / (J * J.' + l^2 * eye(6)) * globalError;
+    deltaArticulation = pinv(J) * globalError;
 end

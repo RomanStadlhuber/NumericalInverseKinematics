@@ -45,11 +45,18 @@ maxIterations = 150;
 diagnosticMode = true;
 %% compute inverse kinematics for entire trajectory
 
+% GN
+[outTrajectoryGN, outJointStatesGN] = traceTrajectoryGN(robot, tcpName, waypoints, maxIterations, minDistance, weights, initialGuess, diagnosticMode);
 % LM
-[outTrajectory, outJointStates] = traceTrajectory(robot, tcpName, waypoints, maxIterations, minDistance, weights, initialGuess, diagnosticMode);
+[outTrajectoryLM, outJointStatesLM] = traceTrajectory(robot, tcpName, waypoints, maxIterations, minDistance, weights, initialGuess, diagnosticMode);
 % BGFS
 [outTrajectoryBFGS, outJointStatesBFGS] = traceTrajectoryBFGS(robot, tcpName, waypoints, maxIterations, minDistance, weights, initialGuess, diagnosticMode);
 
+%% print diagnostics
+disp("avg. iterations");
+disp("GN: " + mean(iterationsPerWaypointGN) + "  LM: " + mean(iterationsPerWaypoint) + "  BFGS: " + mean(iterationsPerWaypointBFGS));
+disp("max. iterations");
+disp("GN: " + max(iterationsPerWaypointGN) + "  LM: " + max(iterationsPerWaypoint) + "  BFGS: " + max(iterationsPerWaypointBFGS));
 
 
 %% plot trajectory
